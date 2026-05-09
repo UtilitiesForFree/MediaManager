@@ -45,8 +45,7 @@ tracing-appender = "0.2"
 rusqlite = { version = "0.31", features = ["bundled"] }
 walkdir = "2"
 notify = "6"
-image = { version = "0.25", default-features = false,
-          features = ["jpeg", "png", "gif", "bmp", "webp", "tiff"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "bmp", "webp", "tiff"] }
 kamadak-exif = "0.5"
 mp4parse = "0.17"
 unicase = "2.7"
