@@ -1,38 +1,56 @@
-name: Build
+name: CI
+
 on:
-  push: { branches: [main] }
+  push:
+    branches: [main]
+    tags-ignore: ['v*']    # tags are handled by release.yml
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
+    name: CI — ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-latest,    target: aarch64-apple-darwin }
-          - { os: macos-latest,    target: x86_64-apple-darwin  }
-          - { os: ubuntu-22.04,    target: x86_64-unknown-linux-gnu }
-          - { os: windows-latest,  target: x86_64-pc-windows-msvc }
+          - { name: macOS,   os: macos-latest,   target: aarch64-apple-darwin,       args: --target aarch64-apple-darwin }
+          - { name: Linux,   os: ubuntu-22.04,   target: x86_64-unknown-linux-gnu,   args: '' }
+          - { name: Windows, os: windows-latest, target: x86_64-pc-windows-msvc,     args: '' }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
+
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: ${{ matrix.target }} }
+
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
-      - if: matrix.os == 'ubuntu-22.04'
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev build-essential \
-            curl wget file libxdo-dev libssl-dev \
-            libayatana-appindicator3-dev librsvg2-dev libheif-dev ffmpeg
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential \
+            curl wget file libxdo-dev libssl-dev pkg-config \
+            libayatana-appindicator3-dev librsvg2-dev
+
       - run: npm ci
-      - run: npm run build
-      - run: cd src-tauri && cargo test --workspace
-      - run: cd src-tauri && cargo clippy --workspace -- -D warnings
-      - uses: tauri-apps/tauri-action@v0
+
+      - name: TypeScript + Vite build
+        run: npm run build
+
+      - name: Rust tests
+        run: cd src-tauri && cargo test --workspace
+
+      - name: Clippy
+        run: cd src-tauri && cargo clippy --workspace -- -D warnings
+
+      - name: Tauri build (debug)
+        uses: tauri-apps/tauri-action@v0
         with:
-          args: --target ${{ matrix.target }}
+          args: ${{ matrix.args }} --debug
