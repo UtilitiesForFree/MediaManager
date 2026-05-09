@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
-    tags-ignore: ['v*']    # tags are handled by release.yml
+    branches:
+      - main
+    tags-ignore:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -14,21 +16,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macOS,   os: macos-latest,   target: aarch64-apple-darwin,       args: --target aarch64-apple-darwin }
-          - { name: Linux,   os: ubuntu-22.04,   target: x86_64-unknown-linux-gnu,   args: '' }
-          - { name: Windows, os: windows-latest, target: x86_64-pc-windows-msvc,     args: '' }
+          - name: macOS
+            os: macos-latest
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+
+          - name: Linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ""
+
+          - name: Windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ""
+
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with:
+          node-version: 20
+          cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: ${{ matrix.target }} }
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: src-tauri }
+        with:
+          workspaces: src-tauri
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-22.04'
@@ -39,7 +58,8 @@ jobs:
             curl wget file libxdo-dev libssl-dev pkg-config \
             libayatana-appindicator3-dev librsvg2-dev
 
-      - run: npm ci
+      - name: Install JS dependencies
+        run: npm ci
 
       - name: TypeScript + Vite build
         run: npm run build
@@ -53,4 +73,4 @@ jobs:
       - name: Tauri build (debug)
         uses: tauri-apps/tauri-action@v0
         with:
-          args: ${{ matrix.args }} --debug
+          args: "${{ matrix.args }} --debug"
