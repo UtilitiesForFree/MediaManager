@@ -1,0 +1,12 @@
+[package]
+name = "mm-exif"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+mm-core.workspace = true
+kamadak-exif.workspace = true
+mp4parse.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+anyhow.workspace = true

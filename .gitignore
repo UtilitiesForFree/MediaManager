@@ -1,0 +1,31 @@
+# Node
+node_modules/
+dist/
+.vite/
+
+# Rust / Cargo
+src-tauri/target/
+src-tauri/WixTools/
+
+# Tauri
+src-tauri/gen/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Env / secrets
+.env
+.env.local
+.env*.local
+
+# Logs
+*.log
+logs/
+
+# Editor
+.vscode/settings.json
+.idea/
+*.iml

@@ -1,0 +1,17 @@
+[package]
+name = "mm-fs"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+mm-core.workspace = true
+walkdir.workspace = true
+notify.workspace = true
+dunce.workspace = true
+trash.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+blake3.workspace = true
+unicase.workspace = true
+tauri.workspace = true

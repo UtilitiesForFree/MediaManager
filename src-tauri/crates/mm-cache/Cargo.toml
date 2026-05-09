@@ -1,0 +1,13 @@
+[package]
+name = "mm-cache"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+mm-core.workspace = true
+rusqlite.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+blake3.workspace = true
+hex.workspace = true

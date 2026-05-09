@@ -1,0 +1,73 @@
+[package]
+name = "mediamanager"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+mm-app = { path = "crates/mm-app" }
+mm-core = { path = "crates/mm-core" }
+mm-cache = { path = "crates/mm-cache" }
+mm-thumbs = { path = "crates/mm-thumbs" }
+mm-fs = { path = "crates/mm-fs" }
+mm_libraries = { path = "crates/mm-libraries", package = "mm-libraries" }
+
+[workspace]
+members = [".", "crates/mm-core", "crates/mm-fs", "crates/mm-thumbs",
+           "crates/mm-exif", "crates/mm-cache", "crates/mm-libraries",
+           "crates/mm-app"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.75"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+rusqlite = { version = "0.31", features = ["bundled"] }
+walkdir = "2"
+notify = "6"
+image = { version = "0.25", default-features = false,
+          features = ["jpeg", "png", "gif", "bmp", "webp", "tiff"] }
+kamadak-exif = "0.5"
+mp4parse = "0.17"
+unicase = "2.7"
+blake3 = "1"
+hex = "0.4"
+base64 = "0.22"
+trash = "5"
+opener = "0.7"
+dunce = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json", "multipart"] }
+tauri = { version = "2" }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
+mm-core = { path = "crates/mm-core" }
+mm-fs = { path = "crates/mm-fs" }
+mm-thumbs = { path = "crates/mm-thumbs" }
+mm-exif = { path = "crates/mm-exif" }
+mm-cache = { path = "crates/mm-cache" }
+mm-libraries = { path = "crates/mm-libraries" }
+mm-app = { path = "crates/mm-app" }
