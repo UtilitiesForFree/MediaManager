@@ -80,6 +80,33 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      # ── macOS code signing — only inject env vars when secrets are set ───
+      # tauri-action treats any defined env var (even empty string) as "cert
+      # provided" and calls `security import`, which fails with an empty value.
+      # Writing to GITHUB_ENV only when non-empty keeps the var truly absent.
+      - name: Configure macOS signing env
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          _CERT:     ${{ secrets.APPLE_CERTIFICATE }}
+          _PASS:     ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          _IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          _ID:       ${{ secrets.APPLE_ID }}
+          _APASS:    ${{ secrets.APPLE_PASSWORD }}
+          _TEAM:     ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$_CERT" ]; then
+            echo "APPLE_CERTIFICATE=$_CERT"                         >> "$GITHUB_ENV"
+            echo "APPLE_CERTIFICATE_PASSWORD=$_PASS"                >> "$GITHUB_ENV"
+            echo "APPLE_SIGNING_IDENTITY=$_IDENTITY"                >> "$GITHUB_ENV"
+            echo "APPLE_ID=$_ID"                                    >> "$GITHUB_ENV"
+            echo "APPLE_PASSWORD=$_APASS"                           >> "$GITHUB_ENV"
+            echo "APPLE_TEAM_ID=$_TEAM"                             >> "$GITHUB_ENV"
+            echo "Signing enabled"
+          else
+            echo "No APPLE_CERTIFICATE secret — building unsigned DMG"
+          fi
+
       # ── Determine tag name ───────────────────────────────────────────────
       - name: Resolve tag name
         id: tag
@@ -96,16 +123,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS code signing — set these secrets in repo settings to enable
-          APPLE_CERTIFICATE:            ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD:   ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY:       ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID:                     ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD:               ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID:                ${{ secrets.APPLE_TEAM_ID }}
+          # Apple signing vars are injected by "Configure macOS signing env"
+          # step above — only present when APPLE_CERTIFICATE secret is set.
           # Windows code signing — set TAURI_PRIVATE_KEY + TAURI_KEY_PASSWORD
-          TAURI_PRIVATE_KEY:            ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD:           ${{ secrets.TAURI_KEY_PASSWORD }}
+          TAURI_PRIVATE_KEY:  ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName:       ${{ steps.tag.outputs.name }}
           releaseName:   'MediaManager ${{ steps.tag.outputs.name }}'
