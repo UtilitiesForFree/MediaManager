@@ -13,6 +13,7 @@ interface UiState {
   filters: SearchFilters;
   sortBy: SortBy;
   sortDir: SortDir;
+  lastUsedLibraryId: string | null;
 
   setCurrentPath: (p: string | null) => void;
   setThumbSize: (n: number) => void;
@@ -24,6 +25,7 @@ interface UiState {
   setSearchAllLibraries: (b: boolean) => void;
   setFilters: (f: SearchFilters) => void;
   setSort: (by: SortBy, dir: SortDir) => void;
+  setLastUsedLibraryId: (id: string | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -38,6 +40,7 @@ export const useUiStore = create<UiState>((set) => ({
   filters: {},
   sortBy: "name",
   sortDir: "asc",
+  lastUsedLibraryId: null,
 
   setCurrentPath: (p) => set({ currentPath: p, searchQuery: "", isSearching: false }),
   setThumbSize: (n) => set({ thumbSize: n }),
@@ -49,4 +52,5 @@ export const useUiStore = create<UiState>((set) => ({
   setSearchAllLibraries: (b) => set({ searchAllLibraries: b }),
   setFilters: (f) => set({ filters: f }),
   setSort: (by, dir) => set({ sortBy: by, sortDir: dir }),
+  setLastUsedLibraryId: (id) => set({ lastUsedLibraryId: id }),
 }));

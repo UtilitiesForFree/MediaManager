@@ -8,6 +8,7 @@ interface SelectionState {
   rangeFromAnchor: (path: string, allPaths: string[]) => void;
   clear: () => void;
   selectAll: (paths: string[]) => void;
+  keepOnly: (paths: string[]) => void;
 }
 
 export const useSelectionStore = create<SelectionState>((set, get) => ({
@@ -55,4 +56,10 @@ export const useSelectionStore = create<SelectionState>((set, get) => ({
   clear: () => set({ paths: new Set(), anchor: null }),
 
   selectAll: (paths) => set({ paths: new Set(paths), anchor: paths[0] || null }),
+
+  keepOnly: (paths) => {
+    const current = get().paths;
+    const keep = new Set(paths.filter(p => current.has(p)));
+    set({ paths: keep });
+  },
 }));
