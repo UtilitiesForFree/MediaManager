@@ -84,6 +84,8 @@ pub fn register_handlers(
         commands::cancel_search,
         commands::reveal_in_finder,
         commands::sync_library_to_immich,
+        commands::rename_directory,
+        commands::delete_directory,
     ])
 }
 
@@ -483,6 +485,27 @@ pub mod commands {
                 .map_err(AppError::Io)?;
         }
         Ok(())
+    }
+
+    #[tauri::command]
+    pub async fn rename_directory(old_path: String, new_name: String) -> Result<String, AppError> {
+        let old = PathBuf::from(&old_path);
+        let parent = old.parent()
+            .ok_or_else(|| AppError::Internal("path has no parent".into()))?;
+        if new_name.is_empty() || new_name.contains('/') || new_name.contains('\\') {
+            return Err(AppError::InvalidName(new_name));
+        }
+        let new_path = parent.join(&new_name);
+        tokio::fs::rename(&old, &new_path).await.map_err(AppError::Io)?;
+        Ok(new_path.to_string_lossy().into_owned())
+    }
+
+    #[tauri::command]
+    pub async fn delete_directory(path: String) -> Result<(), AppError> {
+        let p = PathBuf::from(&path);
+        tokio::task::spawn_blocking(move || {
+            trash::delete(&p).map_err(|e| AppError::Internal(e.to_string()))
+        }).await.map_err(|e| AppError::Internal(e.to_string()))?
     }
 
     #[tauri::command]

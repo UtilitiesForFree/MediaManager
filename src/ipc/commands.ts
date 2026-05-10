@@ -52,4 +52,6 @@ export const commands = {
   cancelSearch: (searchId: string) => call<void>("cancel_search", { searchId }),
   revealInFinder: (path: string) => call<void>("reveal_in_finder", { path }),
   syncLibraryToImmich: (libraryId: string) => call<ImmichSyncResult>("sync_library_to_immich", { libraryId }),
+  renameDirectory: (oldPath: string, newName: string) => call<string>("rename_directory", { oldPath, newName }),
+  deleteDirectory: (path: string) => call<void>("delete_directory", { path }),
 };
