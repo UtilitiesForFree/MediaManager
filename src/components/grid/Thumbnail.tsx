@@ -38,7 +38,7 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
   const { url, failed } = useThumbnail(path, size);
   const [loaded, setLoaded] = useState(false);
   const { libraries } = useLibraries();
-  const { selectAll } = useSelectionStore();
+  const { selectAll, toggle } = useSelectionStore();
   const { lastUsedLibraryId, setLastUsedLibraryId } = useUiStore();
   const { toast } = useToast();
   const thumbUrls = useThumbStore(s => s.urls);
@@ -253,7 +253,7 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
                     ? "bg-primary border-primary opacity-100 scale-100"
                     : "bg-black/30 border-white/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm scale-90 group-hover:scale-100"
                 )}
-                onClick={(e) => { e.stopPropagation(); onClick(e); }}
+                onClick={(e) => { e.stopPropagation(); toggle(path); }}
               >
                 {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
