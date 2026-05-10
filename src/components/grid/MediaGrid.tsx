@@ -19,7 +19,7 @@ const GAP = 12;
 
 export function MediaGrid() {
   const { currentPath, thumbSize, searchQuery, isSearching, filters, sortBy, sortDir } = useUiStore();
-  const { paths: selectedPaths, setSingle, toggle, rangeFromAnchor, clear, selectAll } = useSelectionStore();
+  const { paths: selectedPaths, toggle, rangeFromAnchor, clear, selectAll } = useSelectionStore();
   const thumbUrls = useThumbStore(s => s.urls);
 
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
@@ -166,11 +166,10 @@ export function MediaGrid() {
           return centerX >= x1 && centerX <= x2 && centerY >= y1 && centerY <= y2;
         }).map(i => i.path);
 
-        if (em.shiftKey) {
-          selected.forEach(p => toggle(p));
+        if (selected.length === 0) {
+          clear();
         } else {
-          selected.forEach((p, i) => i === 0 ? setSingle(p) : toggle(p));
-          if (selected.length === 0) clear();
+          selected.forEach(p => toggle(p));
         }
 
         return null;
@@ -352,8 +351,7 @@ export function MediaGrid() {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (e.shiftKey) rangeFromAnchor(item.path, allPaths);
-                      else if (e.metaKey || e.ctrlKey) toggle(item.path);
-                      else setSingle(item.path);
+                      else toggle(item.path);
                     }}
                   />
                 ))}
