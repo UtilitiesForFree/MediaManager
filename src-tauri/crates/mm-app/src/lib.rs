@@ -7,7 +7,7 @@ use mm_thumbs::ThumbGen;
 use mm_libraries::LibraryStore;
 use tauri::{AppHandle, State, Manager, Emitter};
 use uuid::Uuid;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -52,6 +52,17 @@ impl UndoLog {
     }
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(tag = "op", rename_all = "camelCase")]
+pub enum ImageEditOp {
+    Rotate { degrees: u32 },
+    FlipHorizontal,
+    FlipVertical,
+    Crop { x: u32, y: u32, width: u32, height: u32 },
+    Brightness { value: i32 },
+    Contrast { value: f32 },
+}
+
 pub fn register_handlers(
     builder: tauri::Builder<tauri::Wry>,
 ) -> tauri::Builder<tauri::Wry> {
@@ -86,6 +97,8 @@ pub fn register_handlers(
         commands::sync_library_to_immich,
         commands::rename_directory,
         commands::delete_directory,
+        commands::edit_image,
+        commands::load_image_preview,
     ])
 }
 
@@ -505,6 +518,74 @@ pub mod commands {
         let p = PathBuf::from(&path);
         tokio::task::spawn_blocking(move || {
             trash::delete(&p).map_err(|e| AppError::Internal(e.to_string()))
+        }).await.map_err(|e| AppError::Internal(e.to_string()))?
+    }
+
+    #[tauri::command]
+    pub async fn edit_image(path: String, operation: crate::ImageEditOp) -> Result<(), AppError> {
+        tokio::task::spawn_blocking(move || {
+            let p = Path::new(&path);
+            let reader = image::ImageReader::open(p)
+                .map_err(|e| AppError::Internal(e.to_string()))?
+                .with_guessed_format()
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let format = reader.format()
+                .ok_or_else(|| AppError::Decode("Cannot detect image format".into()))?;
+            let img = reader.decode().map_err(|e| AppError::Decode(e.to_string()))?;
+
+            let result = match operation {
+                crate::ImageEditOp::Rotate { degrees } => match degrees {
+                    90  => img.rotate90(),
+                    180 => img.rotate180(),
+                    270 => img.rotate270(),
+                    _   => return Err(AppError::Internal("Invalid rotation degrees".into())),
+                },
+                crate::ImageEditOp::FlipHorizontal => img.fliph(),
+                crate::ImageEditOp::FlipVertical   => img.flipv(),
+                crate::ImageEditOp::Crop { x, y, width, height } => {
+                    let w = width.min(img.width().saturating_sub(x));
+                    let h = height.min(img.height().saturating_sub(y));
+                    if w == 0 || h == 0 {
+                        return Err(AppError::Internal("Crop region is empty".into()));
+                    }
+                    img.crop_imm(x, y, w, h)
+                },
+                crate::ImageEditOp::Brightness { value } => img.brighten(value),
+                crate::ImageEditOp::Contrast { value }   => img.adjust_contrast(value),
+            };
+
+            let mut file = std::io::BufWriter::new(
+                std::fs::File::create(p).map_err(AppError::Io)?
+            );
+            result.write_to(&mut file, format).map_err(|e| AppError::Decode(e.to_string()))
+        }).await.map_err(|e| AppError::Internal(e.to_string()))?
+    }
+
+    #[tauri::command]
+    pub async fn load_image_preview(path: String) -> Result<String, AppError> {
+        tokio::task::spawn_blocking(move || {
+            use base64::Engine;
+            use std::io::Cursor;
+
+            let p = Path::new(&path);
+            let reader = image::ImageReader::open(p)
+                .map_err(|e| AppError::Internal(e.to_string()))?
+                .with_guessed_format()
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let img = reader.decode().map_err(|e| AppError::Decode(e.to_string()))?;
+
+            let img = if img.width() > 1400 || img.height() > 1400 {
+                img.thumbnail(1400, 1400)
+            } else {
+                img
+            };
+
+            let mut buf = Vec::new();
+            img.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Jpeg)
+                .map_err(|e| AppError::Decode(e.to_string()))?;
+
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+            Ok(format!("data:image/jpeg;base64,{}", b64))
         }).await.map_err(|e| AppError::Internal(e.to_string()))?
     }
 

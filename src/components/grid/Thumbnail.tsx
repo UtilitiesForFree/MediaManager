@@ -1,8 +1,9 @@
 import { useThumbnail } from "@/hooks/useThumbnail";
-import { Film, Image as ImageIcon, FileDigit, AlertCircle, Play, Check, FolderInput, Copy, ExternalLink, Trash2, Library } from "lucide-react";
+import { Film, Image as ImageIcon, FileDigit, AlertCircle, Play, Check, FolderInput, Copy, ExternalLink, Trash2, Library, Pencil } from "lucide-react";
 import { MediaKind } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { ImageEditorDialog } from "@/components/dialogs/ImageEditorDialog";
 import { useDrag, DragPreviewImage } from "react-dnd";
 import { ToastAction } from "@/components/ui/toast";
 import {
@@ -32,9 +33,10 @@ interface ThumbnailProps {
   selectedPaths: string[];
   allPaths: string[];
   duration?: number;
+  isInLibrary?: boolean;
 }
 
-export function Thumbnail({ path, name, kind, size, isSelected, onClick, selectedPaths, allPaths, duration }: ThumbnailProps) {
+export function Thumbnail({ path, name, kind, size, isSelected, onClick, selectedPaths, allPaths, duration, isInLibrary }: ThumbnailProps) {
   const { url, failed } = useThumbnail(path, size);
   const [loaded, setLoaded] = useState(false);
   const { libraries } = useLibraries();
@@ -42,6 +44,9 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
   const { lastUsedLibraryId, setLastUsedLibraryId } = useUiStore();
   const { toast } = useToast();
   const thumbUrls = useThumbStore(s => s.urls);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  const canEdit = isInLibrary && kind === "image";
 
   const ext = name.split(".").pop()?.toLowerCase();
   const isRaw = kind === "raw";
@@ -195,6 +200,14 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
   return (
     <>
       <DragPreviewImage connect={preview} src={emptyImg} />
+      {canEdit && (
+        <ImageEditorDialog
+          path={path}
+          name={name}
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+        />
+      )}
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
@@ -289,6 +302,15 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
               <Check className="h-3 w-3" />
               {actionPaths.length} items selected
             </div>
+          )}
+
+          {canEdit && actionPaths.length === 1 && (
+            <>
+              <ContextMenuItem className="gap-2" onClick={() => setEditorOpen(true)}>
+                <Pencil className="h-4 w-4" /> Edit Photo…
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
           )}
 
           <ContextMenuSub>

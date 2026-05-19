@@ -99,3 +99,11 @@ export interface AppError {
   message: string;
   detail?: string;
 }
+
+export type ImageEditOp =
+  | { op: "rotate"; degrees: 90 | 180 | 270 }
+  | { op: "flipHorizontal" }
+  | { op: "flipVertical" }
+  | { op: "crop"; x: number; y: number; width: number; height: number }
+  | { op: "brightness"; value: number }
+  | { op: "contrast"; value: number };

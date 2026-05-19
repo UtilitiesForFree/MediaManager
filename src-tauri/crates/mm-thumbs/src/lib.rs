@@ -164,6 +164,62 @@ fn generate_image(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError>
 }
 
 fn generate_video(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError> {
+    generate_video_ffmpeg(path, size)
+        .or_else(|_| generate_video_qlmanage(path, size))
+}
+
+fn generate_video_ffmpeg(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError> {
+    use std::process::Command;
+
+    let tmp_path = std::env::temp_dir().join(format!(
+        "mm_thumb_{}_{}.png",
+        std::process::id(),
+        hex::encode(&blake3::hash(path.to_string_lossy().as_bytes()).as_bytes()[..8])
+    ));
+
+    // Try seeking to 1s; for very short clips fall back to frame 0
+    let output = Command::new("ffmpeg")
+        .args(["-ss", "00:00:01", "-i"])
+        .arg(path)
+        .args([
+            "-vframes", "1",
+            "-vf", &format!("scale={}:{}:force_original_aspect_ratio=decrease", size, size),
+            "-q:v", "2", "-y",
+        ])
+        .arg(&tmp_path)
+        .output()
+        .map_err(|e| AppError::Decode(format!("ffmpeg not available: {}", e)))?;
+
+    let output = if !output.status.success() || !tmp_path.exists() {
+        let _ = std::fs::remove_file(&tmp_path);
+        Command::new("ffmpeg")
+            .args(["-i"])
+            .arg(path)
+            .args([
+                "-vframes", "1",
+                "-vf", &format!("scale={}:{}:force_original_aspect_ratio=decrease", size, size),
+                "-q:v", "2", "-y",
+            ])
+            .arg(&tmp_path)
+            .output()
+            .map_err(|e| AppError::Decode(format!("ffmpeg not available: {}", e)))?
+    } else {
+        output
+    };
+
+    if !output.status.success() {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(AppError::Decode("ffmpeg failed".into()));
+    }
+
+    let img_bytes = std::fs::read(&tmp_path)
+        .map_err(|_| AppError::Decode("ffmpeg produced no output".into()))?;
+    let _ = std::fs::remove_file(&tmp_path);
+
+    encode_to_webp(&img_bytes, path, size)
+}
+
+fn generate_video_qlmanage(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError> {
     use std::process::Command;
 
     let tmp_dir = std::env::temp_dir().join(format!("mm_thumb_{}", std::process::id()));
@@ -181,7 +237,6 @@ fn generate_video(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError>
         return Err(AppError::Decode("qlmanage failed".into()));
     }
 
-    // qlmanage writes <filename>.png in the output dir
     let file_name = path.file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("video");
@@ -191,14 +246,18 @@ fn generate_video(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError>
         .map_err(|_| AppError::Decode("qlmanage produced no output".into()))?;
     let _ = std::fs::remove_dir_all(&tmp_dir);
 
-    let img = image::load_from_memory(&img_bytes)
+    encode_to_webp(&img_bytes, path, size)
+}
+
+fn encode_to_webp(img_bytes: &[u8], path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError> {
+    let img = image::load_from_memory(img_bytes)
         .map_err(|e| AppError::Decode(e.to_string()))?;
     let thumb = img.resize(size, size, image::imageops::FilterType::Lanczos3);
 
     let hash = blake3::hash(path.to_string_lossy().as_bytes());
     let thumb_file_name = format!("{}_{}.webp", hex::encode(&hash.as_bytes()[..8]), size);
     let mut buffer = Vec::new();
-    let encoder = image::codecs::webp::WebPEncoder::new_lossless(&mut buffer);
+    let encoder = WebPEncoder::new_lossless(&mut buffer);
     thumb.write_with_encoder(encoder).map_err(|e| AppError::Decode(e.to_string()))?;
 
     Ok((thumb_file_name, buffer))

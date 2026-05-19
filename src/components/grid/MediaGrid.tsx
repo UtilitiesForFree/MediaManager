@@ -6,6 +6,7 @@ import { useSelectionStore } from "@/stores/selectionStore";
 import { useThumbStore } from "@/stores/thumbStore";
 import { commands, MediaItem } from "@/ipc";
 import { useQuery } from "@tanstack/react-query";
+import { useLibraries } from "@/hooks/useLibraries";
 import { Thumbnail } from "./Thumbnail";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { LibraryPickerDialog } from "../dialogs/LibraryPickerDialog";
@@ -21,6 +22,11 @@ export function MediaGrid() {
   const { currentPath, thumbSize, searchQuery, isSearching, filters, sortBy, sortDir } = useUiStore();
   const { paths: selectedPaths, toggle, rangeFromAnchor, clear, selectAll } = useSelectionStore();
   const thumbUrls = useThumbStore(s => s.urls);
+  const { libraries } = useLibraries();
+  const isInLibrary = useMemo(
+    () => !!currentPath && libraries.some(l => l.path === currentPath),
+    [currentPath, libraries]
+  );
 
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [_activeSearchId, setActiveSearchId] = useState<string | null>(null);
@@ -348,6 +354,7 @@ export function MediaGrid() {
                     selectedPaths={selectedPathsArray}
                     allPaths={allPaths}
                     duration={item.duration}
+                    isInLibrary={isInLibrary}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (e.shiftKey) rangeFromAnchor(item.path, allPaths);

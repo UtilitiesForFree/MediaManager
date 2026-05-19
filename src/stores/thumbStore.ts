@@ -5,6 +5,7 @@ interface ThumbState {
   failed: Set<string>;
   setThumb: (path: string, url: string) => void;
   setFailed: (path: string) => void;
+  removeThumb: (path: string) => void;
   clear: () => void;
 }
 
@@ -20,6 +21,13 @@ export const useThumbStore = create<ThumbState>((set) => ({
     const next = new Set(state.failed);
     next.add(path);
     return { failed: next };
+  }),
+  removeThumb: (path) => set((state) => {
+    const urls = new Map(state.urls);
+    const failed = new Set(state.failed);
+    urls.delete(path);
+    failed.delete(path);
+    return { urls, failed };
   }),
   clear: () => set({ urls: new Map(), failed: new Set() }),
 }));

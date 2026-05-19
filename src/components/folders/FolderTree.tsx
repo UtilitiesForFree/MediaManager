@@ -30,6 +30,7 @@ export function FolderTree() {
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(600);
+  const openIds = useRef<Set<string>>(new Set());
 
   // Rename state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export function FolderTree() {
           hasChildren: r.hasChildren,
           isLibrary: r.isLibrary,
           path: r.path,
-          children: r.hasChildren ? [] : undefined,
+          children: [],
         })));
       }
       setLoading(false);
@@ -63,6 +64,15 @@ export function FolderTree() {
   }, []);
 
   const onToggle = async (id: string) => {
+    // Determine direction: if id is in openIds it's currently open → closing, else opening.
+    const isOpening = !openIds.current.has(id);
+    if (isOpening) {
+      openIds.current.add(id);
+    } else {
+      openIds.current.delete(id);
+      return; // closing — no need to re-fetch
+    }
+
     const findNode = (items: any[]): any | null => {
       for (const item of items) {
         if (item.id === id) return item;
@@ -75,7 +85,9 @@ export function FolderTree() {
     };
 
     const nodeData = findNode(data);
-    if (!nodeData || !nodeData.hasChildren || (nodeData.children && nodeData.children.length > 0)) return;
+    // Always re-fetch on open so externally created directories appear immediately.
+    // Skip only genuine leaf nodes (hasChildren: false) that haven't been loaded yet.
+    if (!nodeData) return;
 
     const res = await commands.listDirectory(id);
     if (res.ok) {
@@ -85,13 +97,17 @@ export function FolderTree() {
         hasChildren: n.hasChildren,
         isLibrary: n.isLibrary,
         path: n.path,
-        children: n.hasChildren ? [] : undefined,
+        children: [],
       }));
 
       setData(prev => {
         const updateNode = (items: any[]): any[] =>
           items.map(item => {
-            if (item.id === id) return { ...item, children };
+            if (item.id === id) {
+              // Update hasChildren in case the directory gained or lost subdirs.
+              const hasChildren = children.length > 0;
+              return { ...item, hasChildren, children: hasChildren ? children : [] };
+            }
             if (item.children) return { ...item, children: updateNode(item.children) };
             return item;
           });
@@ -174,7 +190,7 @@ export function FolderTree() {
     const handleRowClick = () => {
       if (isEditing) return;
       node.select();
-      if (node.data.hasChildren) node.toggle();
+      node.toggle();
     };
 
     const startEdit = () => {
@@ -200,7 +216,7 @@ export function FolderTree() {
           className="w-4 h-4 flex items-center justify-center hover:bg-muted-foreground/20 rounded-sm shrink-0"
           onClick={handleChevronClick}
         >
-          {node.data.hasChildren && (
+          {!isRoot && (
             node.isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
           )}
         </div>

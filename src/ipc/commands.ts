@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { FolderNode, MediaListResult, SortBy, SortDir, AppError, Library, AppConfig, ConflictPolicy, OpResult, ExifData, SearchFilters, ImmichSyncResult } from "./types";
+import type { FolderNode, MediaListResult, SortBy, SortDir, AppError, Library, AppConfig, ConflictPolicy, OpResult, ExifData, SearchFilters, ImmichSyncResult, ImageEditOp } from "./types";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError };
 
@@ -54,4 +54,6 @@ export const commands = {
   syncLibraryToImmich: (libraryId: string) => call<ImmichSyncResult>("sync_library_to_immich", { libraryId }),
   renameDirectory: (oldPath: string, newName: string) => call<string>("rename_directory", { oldPath, newName }),
   deleteDirectory: (path: string) => call<void>("delete_directory", { path }),
+  editImage: (path: string, operation: ImageEditOp) => call<void>("edit_image", { path, operation }),
+  loadImagePreview: (path: string) => call<string>("load_image_preview", { path }),
 };
