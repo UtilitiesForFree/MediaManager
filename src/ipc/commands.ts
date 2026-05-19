@@ -56,4 +56,5 @@ export const commands = {
   deleteDirectory: (path: string) => call<void>("delete_directory", { path }),
   editImage: (path: string, operation: ImageEditOp) => call<void>("edit_image", { path, operation }),
   loadImagePreview: (path: string) => call<string>("load_image_preview", { path }),
+  pingImmich: (url: string, apiKey: string) => call<void>("ping_immich", { url, apiKey }),
 };

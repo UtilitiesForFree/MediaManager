@@ -57,20 +57,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const handleTestImmich = async () => {
     if (!config) return;
     setTestingImmich(true);
-    try {
-      const url = config.immichUrl.replace(/\/$/, "");
-      const res = await fetch(`${url}/api/server/ping`, {
-        headers: { "x-api-key": config.immichApiKey },
-      });
-      if (res.ok) {
-        toast({ title: "Immich connection successful" });
-      } else {
-        toast({ title: `Connection failed (HTTP ${res.status})`, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Connection failed — check URL", variant: "destructive" });
-    } finally {
-      setTestingImmich(false);
+    const res = await commands.pingImmich(config.immichUrl, config.immichApiKey);
+    setTestingImmich(false);
+    if (res.ok) {
+      toast({ title: "Immich connection successful" });
+    } else {
+      toast({ title: `Connection failed — ${res.error.message}`, variant: "destructive" });
     }
   };
 

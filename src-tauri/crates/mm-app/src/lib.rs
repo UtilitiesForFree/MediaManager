@@ -99,6 +99,7 @@ pub fn register_handlers(
         commands::delete_directory,
         commands::edit_image,
         commands::load_image_preview,
+        commands::ping_immich,
     ])
 }
 
@@ -661,6 +662,24 @@ pub mod commands {
         })).ok();
 
         Ok(ImmichSyncResult { album_id, album_name, uploaded, skipped, failed })
+    }
+
+    #[tauri::command]
+    pub async fn ping_immich(url: String, api_key: String) -> Result<(), AppError> {
+        let url = url.trim_end_matches('/').to_string();
+        let client = reqwest::Client::new();
+        let res = client
+            .get(format!("{}/api/server/ping", url))
+            .header("x-api-key", &api_key)
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        if res.status().is_success() {
+            Ok(())
+        } else {
+            Err(AppError::Internal(format!("HTTP {}", res.status())))
+        }
     }
 }
 
