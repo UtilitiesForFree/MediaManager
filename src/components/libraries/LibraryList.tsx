@@ -17,6 +17,7 @@ export function LibraryList() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [moveCopyData, setMoveCopyData] = useState<{ items: string[], targetLibrary: any } | null>(null);
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
+  const [syncingAll, setSyncingAll] = useState(false);
   const { toast } = useToast();
 
   const handleSync = async (libraryId: string) => {
@@ -34,20 +35,58 @@ export function LibraryList() {
     }
   };
 
+  const handleSyncAll = async () => {
+    if (libraries.length === 0 || syncingAll) return;
+    setSyncingAll(true);
+    let totalUploaded = 0, totalSkipped = 0, totalFailed = 0, errors = 0;
+    for (const lib of libraries) {
+      setSyncingIds(prev => new Set(prev).add(lib.id));
+      const res = await commands.syncLibraryToImmich(lib.id);
+      setSyncingIds(prev => { const s = new Set(prev); s.delete(lib.id); return s; });
+      if (res.ok) {
+        totalUploaded += res.value.uploaded;
+        totalSkipped += res.value.skipped;
+        totalFailed += res.value.failed;
+      } else {
+        errors++;
+      }
+    }
+    setSyncingAll(false);
+    toast({
+      title: `All libraries synced (${libraries.length - errors}/${libraries.length})`,
+      description: `${totalUploaded} uploaded, ${totalSkipped} already on Immich${totalFailed > 0 ? `, ${totalFailed} failed` : ""}${errors > 0 ? `, ${errors} libraries errored` : ""}`,
+    });
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
         <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           Libraries
         </h3>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-5 w-5 hover:bg-muted"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Plus className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 hover:bg-muted"
+            title="Sync all libraries to Immich"
+            disabled={syncingAll || libraries.length === 0}
+            onClick={handleSyncAll}
+          >
+            {syncingAll
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <UploadCloud className="h-3 w-3" />
+            }
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 hover:bg-muted"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
       
       <ScrollArea className="flex-1">
