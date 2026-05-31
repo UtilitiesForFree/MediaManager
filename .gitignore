@@ -17,8 +17,6 @@ Thumbs.db
 *.swo
 
 # Env / secrets
-.env
-.env.local
 .env*.local
 
 # Logs
@@ -26,6 +24,6 @@ Thumbs.db
 logs/
 
 # Editor
-.vscode/settings.json
 .idea/
 *.iml
+config.bat

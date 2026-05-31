@@ -168,8 +168,20 @@ fn generate_video(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError>
         .or_else(|_| generate_video_qlmanage(path, size))
 }
 
+fn find_ffmpeg() -> Option<std::path::PathBuf> {
+    let candidates = [
+        "/opt/homebrew/bin/ffmpeg",
+        "/usr/local/bin/ffmpeg",
+        "/usr/bin/ffmpeg",
+    ];
+    candidates.iter().map(std::path::Path::new).find(|p| p.exists()).map(|p| p.to_path_buf())
+}
+
 fn generate_video_ffmpeg(path: &Path, size: u32) -> Result<(String, Vec<u8>), AppError> {
     use std::process::Command;
+
+    let ffmpeg = find_ffmpeg()
+        .ok_or_else(|| AppError::Decode("ffmpeg not found".into()))?;
 
     let tmp_path = std::env::temp_dir().join(format!(
         "mm_thumb_{}_{}.png",
@@ -177,29 +189,24 @@ fn generate_video_ffmpeg(path: &Path, size: u32) -> Result<(String, Vec<u8>), Ap
         hex::encode(&blake3::hash(path.to_string_lossy().as_bytes()).as_bytes()[..8])
     ));
 
-    // Try seeking to 1s; for very short clips fall back to frame 0
-    let output = Command::new("ffmpeg")
+    let scale_filter = format!("scale={}:{}:force_original_aspect_ratio=decrease", size, size);
+
+    // Try seeking to 1s; for very short clips fall back to frame 0.
+    // -update 1 required by ffmpeg 5+ for single-image (non-sequence) output.
+    let output = Command::new(&ffmpeg)
         .args(["-ss", "00:00:01", "-i"])
         .arg(path)
-        .args([
-            "-vframes", "1",
-            "-vf", &format!("scale={}:{}:force_original_aspect_ratio=decrease", size, size),
-            "-q:v", "2", "-y",
-        ])
+        .args(["-frames:v", "1", "-update", "1", "-vf", &scale_filter, "-q:v", "2", "-y"])
         .arg(&tmp_path)
         .output()
         .map_err(|e| AppError::Decode(format!("ffmpeg not available: {}", e)))?;
 
     let output = if !output.status.success() || !tmp_path.exists() {
         let _ = std::fs::remove_file(&tmp_path);
-        Command::new("ffmpeg")
+        Command::new(&ffmpeg)
             .args(["-i"])
             .arg(path)
-            .args([
-                "-vframes", "1",
-                "-vf", &format!("scale={}:{}:force_original_aspect_ratio=decrease", size, size),
-                "-q:v", "2", "-y",
-            ])
+            .args(["-frames:v", "1", "-update", "1", "-vf", &scale_filter, "-q:v", "2", "-y"])
             .arg(&tmp_path)
             .output()
             .map_err(|e| AppError::Decode(format!("ffmpeg not available: {}", e)))?

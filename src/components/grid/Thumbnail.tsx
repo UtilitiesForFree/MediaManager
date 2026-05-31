@@ -34,9 +34,10 @@ interface ThumbnailProps {
   allPaths: string[];
   duration?: number;
   isInLibrary?: boolean;
+  onPlayVideo?: () => void;
 }
 
-export function Thumbnail({ path, name, kind, size, isSelected, onClick, selectedPaths, allPaths, duration, isInLibrary }: ThumbnailProps) {
+export function Thumbnail({ path, name, kind, size, isSelected, onClick, selectedPaths, allPaths, duration, isInLibrary, onPlayVideo }: ThumbnailProps) {
   const { url, failed } = useThumbnail(path, size);
   const [loaded, setLoaded] = useState(false);
   const { libraries } = useLibraries();
@@ -242,7 +243,12 @@ export function Thumbnail({ path, name, kind, size, isSelected, onClick, selecte
                     decoding="async"
                   />
                   {kind === "video" && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">
+                    <div
+                      className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors"
+                      onClick={(e) => {
+                        if (onPlayVideo) { e.stopPropagation(); onPlayVideo(); }
+                      }}
+                    >
                       <div className="w-9 h-9 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-lg">
                         <Play className="h-4 w-4 text-white fill-white ml-0.5" />
                       </div>
