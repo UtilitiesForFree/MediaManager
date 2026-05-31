@@ -10,6 +10,7 @@ import { useLibraries } from "@/hooks/useLibraries";
 import { Thumbnail } from "./Thumbnail";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { LibraryPickerDialog } from "../dialogs/LibraryPickerDialog";
+import { VideoPlayerDialog } from "../dialogs/VideoPlayerDialog";
 import { listen } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ export function MediaGrid() {
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [videoPlayerPath, setVideoPlayerPath] = useState<string | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -360,6 +362,7 @@ export function MediaGrid() {
                       if (e.shiftKey) rangeFromAnchor(item.path, allPaths);
                       else toggle(item.path);
                     }}
+                    onPlayVideo={item.kind === "video" ? () => setVideoPlayerPath(item.path) : undefined}
                   />
                 ))}
               </div>
@@ -386,6 +389,11 @@ export function MediaGrid() {
         onOpenChange={setPickerOpen}
         mode={pickerMode}
         selectedPaths={selectedPathsArray}
+      />
+
+      <VideoPlayerDialog
+        path={videoPlayerPath}
+        onClose={() => setVideoPlayerPath(null)}
       />
     </div>
   );
