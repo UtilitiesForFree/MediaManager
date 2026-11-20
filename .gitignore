@@ -26,4 +26,6 @@ logs/
 # Editor
 .idea/
 *.iml
-config.bat
+
+.env
+.env.local
